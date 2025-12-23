@@ -4,6 +4,8 @@ saved/*
 visualization/*
 logger/*
 
+data_exploration/data/*
+
 # pytorch model files
 *.pt
 *.pth
