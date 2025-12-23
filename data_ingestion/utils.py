@@ -28,13 +28,18 @@ def download_file(DATA_DIR, DOWNLOAD_URL, FILENAME):
     os.makedirs(DATA_DIR, exist_ok=True)
     FILE_PATH = os.path.join(DATA_DIR, FILENAME)
 
+    # check if file already exists
+    if os.path.exists(FILE_PATH):
+        print(f"A file already exists, skipping download:\n  {FILE_PATH}")
+        return FILE_PATH
+
     # reach out to server 
     response = requests.get(DOWNLOAD_URL, stream=True)
 
     # retrieve the total file size from headers
     total_size = int(response.headers.get("content-length", 0))
 
-    # download (UNCHANGED)
+    # download 
     with open(FILE_PATH, "wb") as file:
         for data in tqdm(
             response.iter_content(chunk_size=1024),
@@ -43,5 +48,3 @@ def download_file(DATA_DIR, DOWNLOAD_URL, FILENAME):
             file.write(data)
     
     return FILE_PATH
-
-
