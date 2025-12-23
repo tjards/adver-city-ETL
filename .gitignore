@@ -1,0 +1,31 @@
+# data & outputs
+data/*
+saved/*
+visualization/*
+logger/*
+
+# pytorch model files
+*.pt
+*.pth
+*.ckpt
+
+# python cache
+__pycache__/
+*.py[cod]
+
+# virtual environments
+venv/
+.env/
+.venv/
+
+# IDEs
+.vscode/
+.idea/
+
+# jupyter
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+Thumbs.db
+
