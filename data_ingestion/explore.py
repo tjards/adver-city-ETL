@@ -199,6 +199,7 @@ def show_images_grid(imgs, rows=2, cols=3, randomize = True, seed=None):
     plt.tight_layout()
     plt.show()
 
+# list the unique images sizes
 def list_image_sizes(imgs, verbose=True):
 
     sizes = set()

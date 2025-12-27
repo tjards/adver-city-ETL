@@ -3,6 +3,10 @@ import pandas as pd
 from pathlib import Path
 from data_ingestion.explore import get_agent_ids, find_imgs
 
+# configs
+sort_order = ["agent_id", "frame_id", "camera", "image_path"]
+
+# build an index from one source
 def build_index(data_dir, camera = None, ext = '.png', limit = 8):
 
     # turn dir into a proper path
@@ -23,6 +27,7 @@ def build_index(data_dir, camera = None, ext = '.png', limit = 8):
     # get the agent ids
     agent_ids = get_agent_ids(data_dir, include_negative=False)
 
+    # initialize rows
     rows = []
 
     # iterate through the agent ids 
@@ -42,7 +47,7 @@ def build_index(data_dir, camera = None, ext = '.png', limit = 8):
             frame_id = int(img_name_parts[0]) if img_name_parts and img_name_parts[0].isdigit() else None
 
             # pull camera id
-            camera_id = str(img_name_parts[1]) if img_name_parts[1] else None
+            camera_id = str(img_name_parts[1]) if len(img_name_parts) > 1 else None
 
             rows.append({
                 "data_name": data_name,
@@ -59,9 +64,63 @@ def build_index(data_dir, camera = None, ext = '.png', limit = 8):
 
     # sort the rows (if they are not empty)
     if not df.empty:
-        df = df.sort_values(["agent_id", "frame_id", "camera"]).reset_index(drop=True)
+        df = df.sort_values(sort_order).reset_index(drop=True)
 
     return df
+
+# build an index from multiple sources
+def build_index_multi(data_dirs, camera = None, ext = '.png', limit = 8):
+
+    # initialize index dataframe(s)
+    index = []
+
+    # iterate through directories 
+    for data_dir in data_dirs:
+        
+        # build a dataframe (subindex)
+        subindex = build_index(data_dir, camera = camera, ext = ext, limit = limit)
+
+        # append (if there is something to append)
+        if subindex is not None and not subindex.empty:
+            index.append(subindex)
+
+    # if everything is empty 
+    if not index:
+
+        # return an empty dataframe
+        return pd.DataFrame() 
+    
+    else:
+
+        # combine th indices into one big dataframe
+        index_concat = pd.concat(index, ignore_index=True)
+
+        # sort
+        index_concat = index_concat.sort_values(sort_order).reset_index(drop=True)
+
+        # return the concatenated dataframe
+        return index_concat
+
+def save_index(df, DIR, FILENAME, ext='.csv'):
+
+    dir_path = Path(DIR)
+    dir_path.mkdir(parents=True, exist_ok=True)
+    index_path = dir_path / f"{FILENAME}{ext}"
+
+    if ext == '.csv':
+
+        df.to_csv(index_path, index=False)
+        #df = pd.read_csv(index_path)
+
+        return index_path
+
+    else:
+
+        raise ValueError(f"Invalid extension {ext}. Only accepts csv (for now)")
+
+
+
+
 
 
 
