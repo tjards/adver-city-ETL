@@ -3,6 +3,12 @@ import os
 import requests
 from tqdm import tqdm
 import subprocess
+from directory_tree import DisplayTree
+from PIL import Image
+import matplotlib.pyplot as plt
+from pathlib import Path
+import random
+
 
 # build a filename from valid prefix, weather, and density
 def build_filename(prefix, weather, density, VALID_PREFIX, VALID_WEATHER, VALID_DENSITY):
@@ -68,7 +74,7 @@ def extract_file(DIR_IN, FILENAME_IN, DIR_OUT, data_format="7z"):
     expected_dir = os.path.join(DIR_OUT, expected_subdir)   # builds expected directory 
     if os.path.isdir(expected_dir):
         print(f"Already extracted, skipping:\n  {expected_dir}")
-        return
+        return expected_dir
     
     # extract using 7z
     print(f"Extracting:\n  from : {FILE_PATH_IN}\n  to: {DIR_OUT}")
@@ -80,4 +86,86 @@ def extract_file(DIR_IN, FILENAME_IN, DIR_OUT, data_format="7z"):
         )
     else:
         raise ValueError(f"Trying to extract unsupported data format: {data_format}")
+    
+    return expected_dir
 
+# print the folder tree
+def print_folder_tree(root_dir, max_depth=1):
+
+    # configuration
+    config_tree = {
+        # specify starting path 
+        "dirPath": root_dir,
+        # set False to include both files and directories
+        "onlyDirs": False,
+        # set maximum depth for tree
+        "maxDepth": max_depth,
+        # specify sorting option (100 = no specific sort)
+        "sortBy": 100,
+    }
+    # create and display tree
+    DisplayTree(**config_tree)
+
+
+# find image
+def find_imgs(root, camera=None, ext=".png", limit=5):
+
+    # we specify the root direct
+    root = Path(root)
+
+    # if I don't specify a camera, return all
+    if camera is None:
+        pattern = f"*camera*{ext}"
+    # else, return a specific one
+    else:
+        pattern = f"*{camera}*{ext}"
+
+    # we can limit the max returns
+    return sorted(root.rglob(pattern))[:limit]
+
+# show image
+def show_image(path, title=None, figsize = (6,6)):
+    try:
+        img = Image.open(path).convert("RGB")
+    except Exception as e:
+        print(f"Failed to load image: {path}\n{e}")
+        return
+
+    plt.figure(figsize=figsize)
+    plt.imshow(img)
+    plt.axis("off")
+    if title:
+        plt.title(title)
+    else:
+        plt.title(f"{img.size[0]}x{img.size[1]}")
+    plt.show()
+
+def show_images_grid(imgs, rows=2, cols=3, randomize = True, seed=None):
+    n = rows * cols
+
+    if not imgs:
+        print("No images to show.")
+        return
+
+    if randomize:
+        if seed is not None:
+            random.seed(seed)
+        imgs = random.sample(imgs, min(n, len(imgs)))
+    else:
+        imgs = imgs[:n]
+
+    fig, axes = plt.subplots(rows, cols, figsize=(cols * 4, rows * 4))
+    axes = axes.flatten()
+
+    for ax, path in zip(axes, imgs):
+        img = Image.open(path).convert("RGB")
+        ax.imshow(img)
+        ax.set_title(f"{img.size[0]} × {img.size[1]}", fontsize=10)
+        ax.axis("off")
+
+    # turn off unused axes
+    for ax in axes[len(imgs):]:
+        ax.axis("off")
+
+    plt.tight_layout()
+    plt.show()
