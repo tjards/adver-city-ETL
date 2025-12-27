@@ -1,3 +1,9 @@
+'''
+Utilities useful for data exploration
+'''
+
+
+
 # imports
 import os
 import requests
@@ -106,6 +112,28 @@ def print_folder_tree(root_dir, max_depth=1):
     # create and display tree
     DisplayTree(**config_tree)
 
+# get agent ids
+def get_agent_ids(root_dir, include_negative=True):
+    
+    root_dir = Path(root_dir)
+
+    agent_ids = []
+    for p in root_dir.iterdir():
+        if not p.is_dir():
+            continue
+
+        name = p.name
+        if not name.lstrip("-").isdigit():
+            continue
+
+        if not include_negative and name.startswith("-"):
+            continue
+
+        agent_ids.append(name)
+
+    # sort numerically
+    agent_ids.sort(key=int)
+    return agent_ids
 
 # find image
 def find_imgs(root, camera=None, ext=".png", limit=5):
@@ -140,6 +168,7 @@ def show_image(path, title=None, figsize = (6,6)):
         plt.title(f"{img.size[0]}x{img.size[1]}")
     plt.show()
 
+# show images as a grid
 def show_images_grid(imgs, rows=2, cols=3, randomize = True, seed=None):
     n = rows * cols
 
@@ -169,3 +198,21 @@ def show_images_grid(imgs, rows=2, cols=3, randomize = True, seed=None):
 
     plt.tight_layout()
     plt.show()
+
+def list_image_sizes(imgs, verbose=True):
+
+    sizes = set()
+
+    for path in imgs:
+        try:
+            with Image.open(path) as img:
+                sizes.add(img.size)  # (width, height)
+        except Exception as e:
+            print(f"Failed to read image: {path}\n{e}")
+
+    if verbose:
+        print(f"Found {len(sizes)} unique image size(s) in {len(imgs)} images:")
+        for w, h in sorted(sizes):
+            print(f"  {w} × {h}")
+
+    return sizes
