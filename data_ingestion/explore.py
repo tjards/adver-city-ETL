@@ -34,33 +34,95 @@ def build_filename(prefix, weather, density, VALID_PREFIX, VALID_WEATHER, VALID_
 
     return f"{prefix}_{weather}_{density}.7z"
 
+# check if valid
+def is_valid_download(path, file_type = '7z'):
+    if not path.exists() or path.stat().st_size < 32:
+        return False
+    with path.open("rb") as f:
+        if file_type == '7z':
+            magic_number = b"\x37\x7A\xBC\xAF\x27\x1C" # these are the first 6 bytes for a 7-zip file
+            return f.read(6) == magic_number
+        else:
+            raise ValueError(f"Unable to verify downloads for file type: {file_type}")
+
+
 # download a file from a given URL
+streaming_protection = True
+file_type = '7z'
+
 def download_file(DATA_DIR, DOWNLOAD_URL, FILENAME):
 
     # make the data directory if it doesn't exist
-    os.makedirs(DATA_DIR, exist_ok=True)
-    FILE_PATH = os.path.join(DATA_DIR, FILENAME)
+    DATA_DIR = Path(DATA_DIR)
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-    # check if file already exists
-    if os.path.exists(FILE_PATH):
-        print(f"A file already exists, skipping download:\n  {FILE_PATH}")
-        return FILE_PATH
+    FILE_PATH = DATA_DIR / FILENAME
+    #DOWNLOAD_URL = "{BASE_URL}/{FILENAME}"
 
-    # reach out to server 
-    response = requests.get(DOWNLOAD_URL, stream=True)
+    # simpler download without streaming protection (not recommended)
+    if not streaming_protection:
 
-    # retrieve the total file size from headers
-    total_size = int(response.headers.get("content-length", 0))
+        # check if file already exists
+        if os.path.exists(FILE_PATH):
+            print(f"A file already exists, skipping download:\n  {FILE_PATH}")
+            return FILE_PATH
 
-    # download 
-    with open(FILE_PATH, "wb") as file:
-        for data in tqdm(
-            response.iter_content(chunk_size=1024),
-            total=total_size // 1024,
-        ):
-            file.write(data)
-    
-    return FILE_PATH
+        # reach out to server 
+        response = requests.get(DOWNLOAD_URL, stream=True)
+
+        # retrieve the total file size from headers
+        total_size = int(response.headers.get("content-length", 0))
+
+        # download 
+        with open(FILE_PATH, "wb") as file:
+            for data in tqdm(
+                response.iter_content(chunk_size=1024),
+                total=total_size // 1024,
+            ):
+                file.write(data)
+
+    else:
+
+        file_path_temp = FILE_PATH.with_suffix(FILE_PATH.suffix + ".part")     # temporary file to store while streaming
+
+        # if the path exists and is also valid, return the file
+        if FILE_PATH.exists() and is_valid_download(FILE_PATH, file_type = file_type):
+            print(f"A valid file already exists, skipping download:\n  {FILE_PATH}")
+            return str(FILE_PATH)
+        
+        # if not, remove the invalid file
+        if FILE_PATH.exists():
+            print(f"Removing invalid file:\n  {FILE_PATH}")
+            FILE_PATH.unlink()
+
+        print(f"Downloading {FILENAME} at:\n  {DOWNLOAD_URL}")
+
+        # do a safer download in chunks
+        with requests.get(DOWNLOAD_URL, stream=True, timeout=60) as r:
+            
+            # let me know if it doesn't succeed
+            r.raise_for_status()
+            
+            # get response size
+            total_size = int(r.headers.get("content-length", 0))            
+            
+            # open the path
+            with open(file_path_temp, "wb") as f:
+                for chunk in tqdm(
+                    r.iter_content(chunk_size=1024 * 1024),
+                    total=(total_size // (1024 * 1024)) if total_size else None,
+                    ):
+                    if chunk:
+                        f.write(chunk)
+
+        # rename guarantees complete or nothing
+        file_path_temp.replace(FILE_PATH) 
+
+        if not is_valid_download(FILE_PATH, file_type = '7z'):
+            FILE_PATH.unlink(missing_ok=True)
+            raise RuntimeError(f"Downloaded file is not a valid {file_type} file: {FILE_PATH}")
+
+    return str(FILE_PATH)
 
 # extract a file format
 def extract_file(DIR_IN, FILENAME_IN, DIR_OUT, data_format="7z"):
@@ -94,6 +156,7 @@ def extract_file(DIR_IN, FILENAME_IN, DIR_OUT, data_format="7z"):
         raise ValueError(f"Trying to extract unsupported data format: {data_format}")
     
     return expected_dir
+
 
 # print the folder tree
 def print_folder_tree(root_dir, max_depth=1):
@@ -148,8 +211,11 @@ def find_imgs(root, camera=None, ext=".png", limit=5):
     else:
         pattern = f"*{camera}*{ext}"
 
-    # we can limit the max returns
-    return sorted(root.rglob(pattern))[:limit]
+    if limit is None:
+        # we can limit the max returns
+        return sorted(root.rglob(pattern))
+    else:
+        return sorted(root.rglob(pattern))[:limit]
 
 # show image
 def show_image(path, title=None, figsize = (6,6)):

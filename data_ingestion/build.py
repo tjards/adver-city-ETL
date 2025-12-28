@@ -4,7 +4,7 @@ from pathlib import Path
 from data_ingestion.explore import get_agent_ids, find_imgs
 
 # configs
-sort_order = ["agent_id", "frame_id", "camera", "image_path"]
+sort_order = ["data_name", "agent_id", "frame_id", "camera", "image_path"]
 
 # build an index from one source
 def build_index(data_dir, camera = None, ext = '.png', limit = 8):
@@ -25,7 +25,7 @@ def build_index(data_dir, camera = None, ext = '.png', limit = 8):
         return
     
     # get the agent ids
-    agent_ids = get_agent_ids(data_dir, include_negative=False)
+    agent_ids = get_agent_ids(data_dir, include_negative=True)
 
     # initialize rows
     rows = []
@@ -46,8 +46,12 @@ def build_index(data_dir, camera = None, ext = '.png', limit = 8):
             # pull frame id                           
             frame_id = int(img_name_parts[0]) if img_name_parts and img_name_parts[0].isdigit() else None
 
-            # pull camera id
-            camera_id = str(img_name_parts[1]) if len(img_name_parts) > 1 else None
+            # pull camera id 
+            #camera_id = str(img_name_parts[1]) if len(img_name_parts) > 1 else None
+
+            # to guard against unexpected names like "camera_01"
+            camera_parts = [p for p in img_name_parts[1:] if p.lower().startswith("camera")]
+            camera_id = "_".join(camera_parts) if camera_parts else None
 
             rows.append({
                 "data_name": data_name,
