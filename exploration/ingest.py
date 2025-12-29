@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import random
 
-from data_ingestion.explore import build_filename, download_file, extract_file
+from exploration.explore import build_filename, download_file, extract_file
 
 def download_multi(DATA_DIR, BASE_URL, PREFIXES, WEATHERS, DENSITIES, VALID_PREFIX, VALID_WEATHER, VALID_DENSITY):
 

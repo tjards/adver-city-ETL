@@ -1,7 +1,7 @@
 # imports 
 import pandas as pd
 from pathlib import Path
-from data_ingestion.explore import get_agent_ids, find_imgs
+from exploration.explore import get_agent_ids, find_imgs
 
 # configs
 sort_order = ["data_name", "agent_id", "frame_id", "camera", "image_path"]

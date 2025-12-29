@@ -3,7 +3,6 @@ Utilities useful for data exploration
 '''
 
 
-
 # imports
 import os
 import requests

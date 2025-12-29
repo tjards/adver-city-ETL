@@ -1,10 +1,10 @@
-# data & outputs
+# data 
 data/*
-saved/*
-visualization/*
-logger/*
+!data/index/
+!data/index/**
+exploration/data/*
 
-data_exploration/data/*
+
 
 # pytorch model files
 *.pt
