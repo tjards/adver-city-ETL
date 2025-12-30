@@ -1,0 +1,80 @@
+{
+  "project": {
+    "name": "advercity_weather_classification",
+    "description": "Investigation of the Adver-City dataset"
+  },
+
+  "data_paths": {
+    "root": "data",
+    "raw": "data/raw",
+    "index": "data/index",
+    "sampled": "data/sampled",
+    "ready": "data/ready"
+  },
+
+  "ingestion": {
+    "url": "https://www.frdr-dfdr.ca/repo/files/1/published/publication_1079/submitted_data",
+    "archive_extension": ".7z",
+    "camera": null,
+    "image_type": "rgb",
+    "image_extension": ".png",
+    "frame_stride": 10,
+    "images_per_archive": 2000,
+    "max_size_GB": 7 
+  },
+
+  "sampling": {
+    "strategy": "balanced_by_weather",
+    "max_images_per_class": 5000,
+    "min_images_per_class": 1000
+  },
+
+  "splits": {
+    "train": 0.70,
+    "val": 0.15,
+    "test": 0.15
+  },
+
+  "labels": {
+    "valid_prefix": ["rcnj", "ri", "rsnj", "ui", "unj"],
+    "valid_weather": ["cd","cn","fd","fn","hrd","hrn","srd","srn","gd","fhrd","fhrn"],
+    "valid_density": ["s","d"],
+
+    "choose_prefix": ["rcnj", "ri", "unj"],
+    "choose_weather": ["cn", "fn", "hrn", "srn"],
+    "choose_density": ["s"],
+
+    "weather_decode_time": {
+      "cd": "day",
+      "cn": "night",
+      "fd": "day",
+      "fn": "night",
+      "hrd": "day",
+      "hrn": "night",
+      "srd": "day",
+      "srn": "night",
+      "gd": "day",
+      "fhrd": "day",
+      "fhrn": "night"
+    },
+
+    "weather_decode_visibility": {
+      "cd": "clear",
+      "cn": "clear",
+      "fd": "fog",
+      "fn": "fog",
+      "hrd": "heavy_rain",
+      "hrn": "heavy_rain",
+      "srd": "soft_rain",
+      "srn": "soft_rain",
+      "gd": "glare",
+      "fhrd": "fog_heavy_rain",
+      "fhrn": "fog_heavy_rain"
+    }
+  },
+
+  "reproducibility": {
+    "seed": 42,
+    "deterministic": true
+  }
+}
