@@ -51,12 +51,12 @@ recall HTTP lingo:
 def content_length(url, timeout):
 
     # request the header
-    r = requests.head(url, timeout = timeout)
+    r = requests.head(url, timeout = timeout, allow_redirects=True)
     if not (200 <= r.status_code < 300):
         return None
     
     # get the content length
-    content_length = r.header.get("content-length", None)
+    content_length = r.headers.get("content-length", None)
     
     # return
     if content_length is None:
@@ -133,7 +133,7 @@ def download_files(base_url,
             # if it's too big
             if size > max_B:
                 # try next in the list
-                print(f"[SKIP] {filename} would exceed {max_size_GB}.")
+                print(f"[SKIP] {filename} would exceed {max_size_GB} GB.")
                 continue 
 
         # if you made it this far, try download
