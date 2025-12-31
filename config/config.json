@@ -20,7 +20,7 @@
     "image_extension": ".png",
     "frame_stride": 10,
     "images_per_archive": 2000,
-    "max_size_GB": 3 
+    "max_size_GB": 10 
   },
 
   "sampling": {

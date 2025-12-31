@@ -2,6 +2,16 @@
 import requests
 from tqdm import tqdm
 
+# ensures choices are passed as lists
+def as_list(x):
+    return x if isinstance(x, list) else [x]
+
+# checks whether a candidate item is from a validation list
+def check_valid(candidate, valids):
+    if candidate not in valids:
+        raise ValueError(f"Invalid prefix '{candidate}'. Valid: {sorted(valids)}")
+
+
 # build a filename from desired prefix, weather, and traffic density 
 def build_filename(prefix, weather, density, 
                    VALID_PREFIX, VALID_WEATHER, VALID_DENSITY, 
@@ -11,14 +21,9 @@ def build_filename(prefix, weather, density,
     weather = weather.lower()
     density = density.lower()
 
-    if prefix not in VALID_PREFIX:
-        raise ValueError(f"Invalid prefix '{prefix}'. Valid: {sorted(VALID_PREFIX)}")
-
-    if weather not in VALID_WEATHER:
-        raise ValueError(f"Invalid weather code '{weather}'. Valid: {sorted(VALID_WEATHER)}")
-
-    if density not in VALID_DENSITY:
-        raise ValueError(f"Invalid scene type '{density}'. Valid: {sorted(VALID_DENSITY)}")
+    check_valid(prefix, VALID_PREFIX)
+    check_valid(weather, VALID_WEATHER)
+    check_valid(density, VALID_DENSITY)
 
     return f"{prefix}_{weather}_{density}{ARCHIVE_EXT}"
 
@@ -56,7 +61,7 @@ def content_length(url, timeout):
         return None
     
     # get the content length
-    content_length = r.headers.get("content-length", None)
+    content_length = r.headers.get("content-length")
     
     # return
     if content_length is None:
@@ -119,6 +124,7 @@ def download_files(base_url,
         # avoid overwrite, if desired and if it exists
         if not overwrite and destination.exists():
             # record it as already downloaded
+            print(f"[SKIP] {filename} already present in {destinations_dir}.")
             downloaded.append(destination)
             # try next in list
             continue
