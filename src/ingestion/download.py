@@ -11,16 +11,17 @@ def check_valid(candidate, valids):
     if candidate not in valids:
         raise ValueError(f"Invalid prefix '{candidate}'. Valid: {sorted(valids)}")
 
-
 # build a filename from desired prefix, weather, and traffic density 
 def build_filename(prefix, weather, density, 
                    VALID_PREFIX, VALID_WEATHER, VALID_DENSITY, 
                    ARCHIVE_EXT):
  
+    # always lowercase
     prefix = prefix.lower()
     weather = weather.lower()
     density = density.lower()
 
+    # check it's valid
     check_valid(prefix, VALID_PREFIX)
     check_valid(weather, VALID_WEATHER)
     check_valid(density, VALID_DENSITY)
@@ -86,6 +87,7 @@ def download_file(url, destination, filename, timeout):
     if temp.exists():
         temp.unlink()
 
+    # stream the download and monitor with tqdm
     with requests.get(url, stream=True, timeout=timeout) as r:
         r.raise_for_status()
         total = int(r.headers.get("content-length", 0))
@@ -109,7 +111,7 @@ def download_files(base_url,
                    overwrite = False):
 
     # convert GB to B
-    max_B = int(max_size_GB * 1024 ** 3)
+    max_size_B = int(max_size_GB * 1024 ** 3)
 
     # initialize
     downloaded = []
@@ -130,14 +132,14 @@ def download_files(base_url,
             continue
 
         # avoid files that are too big
-        if max_B is not None:
+        if max_size_B is not None:
             # get size
             size = content_length(url, timeout)
             # if no return
             if size is None:
                 size = 0 # this would be suspicious, but keep going
             # if it's too big
-            if size > max_B:
+            if size > max_size_B:
                 # try next in the list
                 print(f"[SKIP] {filename} would exceed {max_size_GB} GB.")
                 continue 
