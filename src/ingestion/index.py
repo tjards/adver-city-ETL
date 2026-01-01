@@ -1,14 +1,14 @@
-# imports 
+# imports
 import pandas as pd
 from pathlib import Path
-from exploration.explore import get_agent_ids, find_imgs
+from src.utils.file_operations import get_agent_ids, find_imgs
 
 # configs
 sort_order = ["data_name", "agent_id", "frame_id", "camera", "image_path"]
 
 # build an index from one source
-def build_index(data_dir, camera = None, ext = '.png', limit = 8):
-
+def build_index(data_dir, camera=None, ext='.png', limit=8):
+    
     # turn dir into a proper path
     data_path = Path(data_dir)
     
@@ -21,7 +21,7 @@ def build_index(data_dir, camera = None, ext = '.png', limit = 8):
     try:
         prefix, weather, density = data_name_parts[0], data_name_parts[1], data_name_parts[2]
     except Exception as e:
-        print(f"Failed to load image: {data_name}\n{e} \n Expecting format PREFIX_WEATHER_DENSITY")
+        print(f"Failed to parse directory name: {data_name}\n{e}\nExpecting format PREFIX_WEATHER_DENSITY")
         return
     
     # get the agent ids
@@ -34,10 +34,10 @@ def build_index(data_dir, camera = None, ext = '.png', limit = 8):
     for agent_id in agent_ids:
 
         # find the images for that agent id
-        agent_dir = data_path / agent_id    # short hand when using Path()
+        agent_dir = data_path / agent_id
         imgs = find_imgs(agent_dir, camera=camera, ext=ext, limit=limit)
 
-        # pull out the metadata, assuming format FRAMEID_CAMERAID.png (e.g. 000060_camera0.png)
+        # parse image metadata (assuming format FRAMEID_CAMERAID.png)
         for img in imgs:
 
             # pull filename sans extension
@@ -46,10 +46,7 @@ def build_index(data_dir, camera = None, ext = '.png', limit = 8):
             # pull frame id                           
             frame_id = int(img_name_parts[0]) if img_name_parts and img_name_parts[0].isdigit() else None
 
-            # pull camera id 
-            #camera_id = str(img_name_parts[1]) if len(img_name_parts) > 1 else None
-
-            # to guard against unexpected names like "camera_01"
+            # pull camera id (guard against unexpected names like "camera_01")
             camera_parts = [p for p in img_name_parts[1:] if p.lower().startswith("camera")]
             camera_id = "_".join(camera_parts) if camera_parts else None
 
@@ -73,8 +70,8 @@ def build_index(data_dir, camera = None, ext = '.png', limit = 8):
     return df
 
 # build an index from multiple sources
-def build_index_multi(data_dirs, camera = None, ext = '.png', limit = 8):
-
+def build_index_multi(data_dirs, camera=None, ext='.png', limit=8):
+    
     # initialize index dataframe(s)
     index = []
 
@@ -82,7 +79,7 @@ def build_index_multi(data_dirs, camera = None, ext = '.png', limit = 8):
     for data_dir in data_dirs:
         
         # build a dataframe (subindex)
-        subindex = build_index(data_dir, camera = camera, ext = ext, limit = limit)
+        subindex = build_index(data_dir, camera=camera, ext=ext, limit=limit)
 
         # append (if there is something to append)
         if subindex is not None and not subindex.empty:
@@ -90,13 +87,11 @@ def build_index_multi(data_dirs, camera = None, ext = '.png', limit = 8):
 
     # if everything is empty 
     if not index:
-
         # return an empty dataframe
         return pd.DataFrame() 
     
     else:
-
-        # combine th indices into one big dataframe
+        # combine the indices into one big dataframe
         index_concat = pd.concat(index, ignore_index=True)
 
         # sort
@@ -105,38 +100,19 @@ def build_index_multi(data_dirs, camera = None, ext = '.png', limit = 8):
         # return the concatenated dataframe
         return index_concat
 
-def save_index(df, DIR, FILENAME, ext='.csv'):
-
-    dir_path = Path(DIR)
-    dir_path.mkdir(parents=True, exist_ok=True)
-    index_path = dir_path / f"{FILENAME}{ext}"
-
-    if ext == '.csv':
-
-        df.to_csv(index_path, index=False)
-        #df = pd.read_csv(index_path)
-
-        return index_path
-
-    else:
-
-        raise ValueError(f"Invalid extension {ext}. Only accepts csv (for now)")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# save index to file
+def save_index(df, dir_out, filename, ext='.csv'):
     
+    # ensure directory exists
+    dir_path = Path(dir_out)
+    dir_path.mkdir(parents=True, exist_ok=True)
+    
+    # build full path
+    index_path = dir_path / f"{filename}{ext}"
 
-
-
-
+    # save based on extension
+    if ext == '.csv':
+        df.to_csv(index_path, index=False)
+        return index_path
+    else:
+        raise ValueError(f"Unsupported file extension: {ext} (only .csv supported for now)")

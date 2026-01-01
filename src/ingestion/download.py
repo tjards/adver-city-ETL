@@ -1,6 +1,7 @@
 # imports
 import requests
 from tqdm import tqdm
+from pathlib import Path
 
 # ensures choices are passed as lists
 def as_list(x):
@@ -76,6 +77,10 @@ def content_length(url, timeout):
 def download_file(url, destination, filename, timeout):
     
     # note: I shouldn't pass in both the destination and the filename (redundant), fix later
+    
+    # ensure destination is a Path object
+    if not isinstance(destination, Path):
+        destination = Path(destination)
 
     # temp file for partial downloads
     temp = destination.with_suffix(destination.suffix + ".part")
@@ -109,6 +114,10 @@ def download_files(base_url,
                    timeout = 60, 
                    max_size_GB = 5, 
                    overwrite = False):
+
+    # ensure destinations_dir is a Path object
+    if not isinstance(destinations_dir, Path):
+        destinations_dir = Path(destinations_dir)
 
     # convert GB to B
     max_size_B = int(max_size_GB * 1024 ** 3)
