@@ -73,7 +73,7 @@ def build_labels_df(sampled_dir, decode_time, decode_vis, archive_ext, img_ext):
 
         # only do directories
         if not archive_dir.is_dir():
-            print(f"[SKIP] {archive_dir} is not a directory")
+            print(f"[SKIP] {archive_dir.name} is not a directory")
             continue
 
         # pull the archive name
