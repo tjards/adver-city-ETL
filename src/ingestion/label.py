@@ -100,7 +100,9 @@ def build_labels_df(sampled_dir, decode_time, decode_vis, archive_ext, img_ext):
 
             # store archive and image name
             row["archive_name"] = archive_name
-            row["image_path"] = str(img_file)
+            #row["image_path"] = str(img_file)
+            rel_path = img_file.relative_to(sampled_dir)
+            row["image_path"] = str(rel_path)  
 
             # extract image-level metadata
             img_metadata = extract_img_metadata(img_file)
@@ -122,7 +124,7 @@ def save_labels(df, output_path):
         output_path = Path(output_path)
 
     df.to_csv(output_path, index=False)
-    print(f"[SAVE] Labels saved to {output_path}")
+    print(f"[SAVE] Labels saved to {output_path.name}")
     print(f" Total images: {len(df)}")
     print(f" Columns: {list(df.columns)}")
     print(f" head:\n{df.head()}")

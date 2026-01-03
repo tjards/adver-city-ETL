@@ -135,7 +135,7 @@ def download_files(base_url,
         # avoid overwrite, if desired and if it exists
         if not overwrite and destination.exists():
             # record it as already downloaded
-            print(f"[SKIP] {filename} already present in {destinations_dir}.")
+            print(f"[SKIP] {filename} already present in {destinations_dir.name}.")
             downloaded.append(destination)
             # try next in list
             continue

@@ -69,17 +69,17 @@ def save_sample_plan(sampling_plan, output_file, overwrite=False):
     output_file = Path(output_file)
     
     if output_file.exists() and not overwrite:
-        print(f"[SKIP] Sample plan already exists at {output_file}. Using existing plan.")
+        print(f"[SKIP] Sample plan already exists at {output_file.name}. Using existing plan.")
         return output_file
     
     if output_file.exists() and overwrite:
-        print(f"[OVERWRITE] Overwriting existing sample plan at {output_file}")
+        print(f"[OVERWRITE] Overwriting existing sample plan at {output_file.name}")
 
     output_file.parent.mkdir(parents=True, exist_ok=True)
     
     with open(output_file, 'w') as f:
         json.dump(sampling_plan, f, indent=2)
     
-    print(f"[SAVE] Sample plan saved to {output_file}")
+    print(f"[SAVE] Sample plan saved to {output_file.name}")
     
-    return output_file
+

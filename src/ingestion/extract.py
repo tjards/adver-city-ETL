@@ -127,10 +127,10 @@ def all_files_exist_for_archive(file_list, sampled_dir):
         full_path = sampled_dir / file_path
         # if it's not there, the sampling plan is not satisfied
         if not full_path.exists():
-            print(f"some files in {full_path} missing from {sampled_dir}")
+            print(f"some files missing: {file_path}")
             return False
     # if all there, we don't need to re-do
-    print(f"all files in {full_path} required in {sampled_dir}")
+    print(f"all files exist in {sampled_dir.name}")
     return True
 
 # extract all files specified in sampling plan
