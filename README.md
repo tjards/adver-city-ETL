@@ -19,6 +19,8 @@ Overall, this pipeline enables efficient, reproducible preparation of the Adver-
 
 ## Project Structure
 
+You will see a broader file structure to support follow-on ML workflows. Here is a high-level summary of the key directories for ETL. 
+
 ```
 pytorch_project_advercity/
 ├── config/
