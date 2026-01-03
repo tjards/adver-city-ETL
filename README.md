@@ -4,7 +4,7 @@
 
 This project implements an **ETL (Extract, Transform, Load) pipeline** for the [Adver-City](https://labs.cs.queensu.ca/quarrg/datasets/adver-city/) synthetic dataset. The dataset is designed for investigating **cooperative perception in autonomous vehicles**—where multiple agents share sensor data to improve object detection and perception in adverse weather conditions (e.g., fog, rain, snow, etc.).
 
-The pipeline selectively ingests data from the [FRDR remote server](https://www.frdr-dfdr.ca/repo/files/1/published/publication_1079/submitted_data), extracts files based on a sampling plan, creates labels, and generates clean train/val/test splits.
+The pipeline selectively ingests data from the [FRDR remote server](https://www.frdr-dfdr.ca/repo/dataset/3bda7692-779f-4cbd-b806-b8aa69d5dff9), extracts files based on a sampling plan, creates labels, and generates clean train/val/test splits.
 
 Overall, this pipeline enables efficient, reproducible preparation of the Adver-City dataset for machine learning workflows.
 
