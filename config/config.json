@@ -30,7 +30,8 @@
     "min_images_per_class": 1000,
     "plan_filename": "sample_plan.json",
     "overwrite": false,
-    "cleanup_raw_after_extract": false
+    "cleanup_raw_after_extract": false,
+    "labels_filename": "labels.csv"
   },
 
   "splits": {
