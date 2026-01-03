@@ -22,6 +22,37 @@ sys.path.insert(0, str(Path.cwd()))
 # custom imports
 from src.ingestion import download, archive, sample, extract, label, split
 
+# check if I can skip download and sampling
+def check_skip(INDEX_DIR, PLAN_FILENAME, SAMPLED_DIR, IMG_EXT):
+    
+    plan_path = INDEX_DIR / PLAN_FILENAME
+    skip = False
+
+    if plan_path.exists() and SAMPLED_DIR.exists():
+        print("Checking if sampling plan is satisfied...\n")
+        
+        # Load sampling plan
+        with open(plan_path, 'r') as f:
+            sampling_plan = json.load(f)
+        
+        # Count expected images from plan
+        expected_count = sum(len(files) for files in sampling_plan.values())
+        
+        # Count actual images in SAMPLED_DIR
+        actual_files = list(SAMPLED_DIR.glob(f"**/*{IMG_EXT}"))
+        actual_count = len(actual_files)
+        
+        if actual_count >= expected_count:
+            print(f"Sample plan satisfied: counted{actual_count}/{expected_count} images")
+            print("Skipping download, manifest, sampling, and extraction\n")
+            skip = True
+        else:
+            print(f"Sample plan NOT satisfied: {actual_count}/{expected_count} images")
+            print("Proceeding with full pipeline...\n")
+
+    return skip
+
+
 # main ETL pipeline
 def main():
 
@@ -70,7 +101,7 @@ def main():
     
     # Image info
     CAMERA = cfg["ingestion"].get("camera", None)             # safer
-    IMG_TYPE = cfg["ingestion"]["image_type"]                 # rgb
+    #IMG_TYPE = cfg["ingestion"]["image_type"]                 # rgb
     IMG_EXT = cfg["ingestion"]["image_extension"]             # file extension of images
     
     # Labelling info
@@ -97,6 +128,9 @@ def main():
     DECODE_TIME = labels_cfg["weather_decode_time"]           # maps files to day/night
     DECODE_VIS = labels_cfg["weather_decode_visibility"]      # maps files to visibility conditions
     
+    # Check if we can skip download and sampling
+    CHECK_SKIP_OPTION = cfg["ingestion"].get("check_skip_option", False) 
+
     print('selected prefixes: ', CHOOSE_PREFIX)
     print('selected weather: ', CHOOSE_WEATHER)
     print('selected density: ', CHOOSE_DENSITY)
@@ -111,90 +145,103 @@ def main():
     # 1. Download from remote server
     # *******************************
 
-    print(separator)
-    print("[1/7]: Downloading data from remote server... \n")
+    if CHECK_SKIP_OPTION:
+        skip = check_skip(INDEX_DIR, PLAN_FILENAME, SAMPLED_DIR, IMG_EXT)
+    else:
+        skip = False
 
-    filenames = download.build_filenames(
-        CHOOSE_PREFIX, CHOOSE_WEATHER, CHOOSE_DENSITY,
-        VALID_PREFIX, VALID_WEATHER, VALID_DENSITY,
-        ARCHIVE_EXT
-    )
+    if not skip:
 
-    print(' Built the following filenames: \n', filenames)
+        print(separator)
+        print("[1/7]: Downloading data from remote server... \n")
 
-    download_raw = download.download_files(
-        base_url=BASE_URL,
-        destinations_dir=RAW_DIR,
-        filenames=filenames,
-        timeout=60,
-        max_size_GB=MAX_GB,
-        overwrite=PLAN_OVERWRITE
-    )
-    print(' Downloaded ', len(download_raw), 'files.')
-    for file in download_raw:
-        print('-->', file.name)
+        filenames = download.build_filenames(
+            CHOOSE_PREFIX, CHOOSE_WEATHER, CHOOSE_DENSITY,
+            VALID_PREFIX, VALID_WEATHER, VALID_DENSITY,
+            ARCHIVE_EXT
+        )
 
-    # *******************************
-    # 2. Develop manifest 
-    # *******************************
+        print(' Built the following filenames: \n', filenames)
 
-    print(separator)
-    print("[2/7]: Developing manifest... \n")
+        download_raw = download.download_files(
+            base_url=BASE_URL,
+            destinations_dir=RAW_DIR,
+            filenames=filenames,
+            timeout=60,
+            max_size_GB=MAX_GB,
+            overwrite=PLAN_OVERWRITE
+        )
+        print(' Downloaded ', len(download_raw), 'files.')
+        for file in download_raw:
+            print('-->', file.name)
 
-    archives = sorted(RAW_DIR.glob(f"*{ARCHIVE_EXT}"))
-    print(f"    Found {len(archives)} downloaded archives\n")
+        # *******************************
+        # 2. Develop manifest 
+        # *******************************
+
+        print(separator)
+        print("[2/7]: Developing manifest... \n")
+
+        archives = sorted(RAW_DIR.glob(f"*{ARCHIVE_EXT}"))
+        print(f"    Found {len(archives)} downloaded archives\n")
+        
+        manifests = {}
+        for archive_file in archives:
+            manifest = archive.build_manifest(archive_file, INDEX_DIR, mode=MANIFEST_MODE)
+            manifests[archive_file.name] = manifest
+            print(f"  {archive_file.name}: {len(manifest)} lines")
+
+        print(f"\n Total manifests: {len(manifests)}")
+
+        # *******************************
+        # 3. Build sampling plan
+        # *******************************
+
+        print(separator)
+        print("[3/7]: Building sampling plan... \n")
+
+        sampling_plan = sample.build_sample_plan(
+            manifests,
+            CAMERA=CAMERA,
+            IMG_EXT=IMG_EXT,
+            STRIDE=STRIDE,
+            MAX_IMGS=MAX_IMGS,
+            SEED=SEED
+        )
+
+        print(f"\n Total images to extract: {sum(len(v) for v in sampling_plan.values())}")
+        
+        sample.save_sample_plan(
+            sampling_plan,
+            INDEX_DIR / PLAN_FILENAME,
+            overwrite=PLAN_OVERWRITE
+        )
+
+        # *******************************
+        # 4. Extract based on sampling plan
+        # *******************************
+
+        print(separator)
+        print("[4/7]: Extracting based on sampling plan... \n")
+
+        sample_plan_file = INDEX_DIR / PLAN_FILENAME
+        
+        _ = extract.extract_from_sample_plan(
+            sample_plan_file=sample_plan_file,
+            raw_dir=RAW_DIR,
+            sampled_dir=SAMPLED_DIR,
+            overwrite=PLAN_OVERWRITE,
+            cleanup_raw=CLEANUP_RAW
+        )
+        
+        print(f"\n Extraction complete. Location:")
+        print(f"  {SAMPLED_DIR.name}/")
     
-    manifests = {}
-    for archive_file in archives:
-        manifest = archive.build_manifest(archive_file, INDEX_DIR, mode=MANIFEST_MODE)
-        manifests[archive_file.name] = manifest
-        print(f"  {archive_file.name}: {len(manifest)} lines")
-
-    print(f"\n Total manifests: {len(manifests)}")
-
-    # *******************************
-    # 3. Build sampling plan
-    # *******************************
-
-    print(separator)
-    print("[3/7]: Building sampling plan... \n")
-
-    sampling_plan = sample.build_sample_plan(
-        manifests,
-        CAMERA=CAMERA,
-        IMG_EXT=IMG_EXT,
-        STRIDE=STRIDE,
-        MAX_IMGS=MAX_IMGS,
-        SEED=SEED
-    )
-
-    print(f"\n Total images to extract: {sum(len(v) for v in sampling_plan.values())}")
-    
-    sample.save_sample_plan(
-        sampling_plan,
-        INDEX_DIR / PLAN_FILENAME,
-        overwrite=PLAN_OVERWRITE
-    )
-
-    # *******************************
-    # 4. Extract based on sampling plan
-    # *******************************
-
-    print(separator)
-    print("[4/7]: Extracting based on sampling plan... \n")
-
-    sample_plan_file = INDEX_DIR / PLAN_FILENAME
-    
-    _ = extract.extract_from_sample_plan(
-        sample_plan_file=sample_plan_file,
-        raw_dir=RAW_DIR,
-        sampled_dir=SAMPLED_DIR,
-        overwrite=PLAN_OVERWRITE,
-        cleanup_raw=CLEANUP_RAW
-    )
-    
-    print(f"\n Extraction complete. Location:")
-    print(f"  {SAMPLED_DIR.name}/")
+    else:
+        print(" [SKIP] Skipping step #1/7: Download data from remote server\n")
+        print(" [SKIP] Skipping step #2/7: Develop manifest\n")
+        print(" [SKIP] Skipping step #3/7: Build sampling plan\n")
+        print(" [SKIP] Skipping step #4: Extract based on sampling plan\n")
 
     # *******************************
     # 5. Labelling and Metadata

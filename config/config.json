@@ -21,7 +21,8 @@
     "frame_stride": 5,
     "images_per_archive": 2000,
     "max_size_GB": 10,
-    "manifest_mode": "simple"
+    "manifest_mode": "simple",
+    "check_skip_option": true
   },
 
   "sampling": {
@@ -30,7 +31,7 @@
     "min_images_per_class": 1000,
     "plan_filename": "sample_plan.json",
     "overwrite": false,
-    "cleanup_raw_after_extract": false,
+    "cleanup_raw_after_extract": true,
     "labels_filename": "labels.csv"
   },
 
